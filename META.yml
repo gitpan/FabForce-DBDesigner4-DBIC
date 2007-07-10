@@ -1,0 +1,22 @@
+---
+name: FabForce-DBDesigner4-DBIC
+version: 0.01
+author:
+  - 'Renee Baecker <module@renee-baecker.de>'
+abstract: create DBIC scheme for DBDesigner4 xml file
+license: perl
+build_requires:
+  Carp: 0
+  FabForce::DBDesigner4: 0.08
+  File::Spec: 3.12
+  Test::More: 0
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
+provides:
+  FabForce::DBDesigner4::DBIC:
+    file: lib/FabForce/DBDesigner4/DBIC.pm
+    version: 0.01
+resources:
+  license: http://dev.perl.org/licenses/
