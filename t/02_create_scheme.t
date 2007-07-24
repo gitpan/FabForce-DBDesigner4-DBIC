@@ -35,9 +35,9 @@ ok( -e $subpath . '/DBIC_Scheme/Role.pm' );
 
 eval{
     rmtree( $output_path );
+    $output_path = _untaint_path( $output_path );
     rmdir $output_path;
 };
-
 
 sub rmtree{
     my ($path) = @_;

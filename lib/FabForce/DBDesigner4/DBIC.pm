@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -305,7 +305,7 @@ use warnings;
 use base qw(DBIx::Class);
 
 __PACKAGE__->load_components( qw/PK::Auto Core/ );
-__PACKAGE__->table( $name );
+__PACKAGE__->table( '$name' );
 __PACKAGE__->add_columns( qw/
 $column_string
 /);
