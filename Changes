@@ -2,5 +2,11 @@ Revision history for FabForce::DBDesigner4::DBIC
 
 0.01    Mon Jul 08 2007
         First version, released on an unsuspecting world.
+        
 0.02    Tue Jul 24 2007
         - bugfix: tablename in classes were barewords
+        
+0.03    Wed Jul 25 2007
+        - bugfix Build.PL: moved requirements from build_requires to requires
+        + added Test::CheckManifest to build_requires
+        - bugfix 98_perl_critic.t: skip tests if Perl::Critic is not installed
