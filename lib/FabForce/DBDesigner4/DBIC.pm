@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -243,13 +243,14 @@ sub _has_many_template{
     
     my $package = $self->namespace . '::' . $self->_scheme . '::' . $to;
        $package =~ s/^:://;
+    my $name    = (split /::/, $package)[-1];
     
     my $string = '';
     for my $arref ( @$arrayref ){
         my ($foreign_field,$field) = @$arref;
     
         $string .= qq~
-__PACKAGE__->has_many($field => '$package',
+__PACKAGE__->has_many($name => '$package',
              { 'foreign.$foreign_field' => 'self.$field' });
 ~;
     }
