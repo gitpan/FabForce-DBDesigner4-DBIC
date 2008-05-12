@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 
@@ -49,8 +49,16 @@ sub new {
     bless $self, $class;
     
     $self->output_path( $args{output_path} );
-    $self->input_file( $args{inputfile} );
+    $self->input_file( $args{input_file} );
     $self->namespace( $args{namespace} );
+    
+    $self->prefix( 
+        'belongs_to'   => '',
+        'has_many'     => '',
+        'has_one'      => '',
+        'many_to_many' => '',
+    );
+    
     
     return $self;
 }
@@ -171,6 +179,34 @@ sub namespace{
     return $self->{namespace};
 }
 
+=head2 prefix
+
+In relationships the accessor for the objects of the "other" table shouldn't have the name of the column. 
+Otherwise it is very clumsy to get the orginial value of this table.
+
+  $foo->prefix( 'belongs_to' => 'fk_' );
+  $foo->prefix( 'has_many' => 'has_' );
+
+creates (col1 is the column name of the foreign key)
+
+  __PACKAGE__->belongs_to( 'fk_col1' => 'OtherTable', {'foreign.col1' => 'self.col1' } );
+
+=cut
+
+sub prefix{
+    if( @_ == 2 ){
+        my ($self,$key) = @_;
+        return $self->{prefixes}->{$key};
+    }
+
+    if( @_ > 1 and @_ % 2 != 0 ){
+        my ($self,%prefixes) = @_;
+        while( my ($key,$val) = each %prefixes ){
+            $self->{prefixes}->{$key} = $val;
+        }
+    }
+}
+
 sub _write_files{
     my ($self, %files) = @_;
     
@@ -248,9 +284,10 @@ sub _has_many_template{
     my $string = '';
     for my $arref ( @$arrayref ){
         my ($foreign_field,$field) = @$arref;
+        my $temp = $self->prefix( 'has_many' ) . $name;
     
         $string .= qq~
-__PACKAGE__->has_many($name => '$package',
+__PACKAGE__->has_many( $temp => '$package',
              { 'foreign.$foreign_field' => 'self.$field' });
 ~;
     }
@@ -267,9 +304,10 @@ sub _belongs_to_template{
     my $string = '';
     for my $arref ( @$arrayref ){
         my ($foreign_field,$field) = @$arref;
+        my $temp_field = $self->prefix( 'belongs_to' ) . $field;
     
         $string .= qq~
-__PACKAGE__->belongs_to($field => '$package',
+__PACKAGE__->belongs_to($temp_field => '$package',
              { 'foreign.$foreign_field' => 'self.$field' });
 ~;
     }
