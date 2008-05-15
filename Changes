@@ -16,3 +16,7 @@ Revision history for FabForce::DBDesigner4::DBIC
 0.05    Sat Apr 12 2008
         - bugfix in parameters for new
         - added prefix() to get unique names for relationships
+
+0.06    Tue May 13 2008
+        - skip tests in 98_perl_critic.t if RELEASE_TESTING is not set
+
