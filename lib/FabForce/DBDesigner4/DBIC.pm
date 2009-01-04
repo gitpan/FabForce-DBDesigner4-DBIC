@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.05
+Version 0.07
 
 =cut
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 SYNOPSIS
 
@@ -25,7 +25,7 @@ our $VERSION = '0.06';
     my $foo = FabForce::DBDesigner4::DBIC->new();
     $foo->output_path( $some_path );
     $foo->namespace( 'MyApp::DB' );
-    $foo->create_scheme( $xml_document );
+    $foo->create_schema( $xml_document );
 
 =head1 METHODS
 
@@ -38,8 +38,9 @@ to new (all parameters are optional)
     output_path => '/path/to/dir',
     input_file  => '/path/to/dbdesigner.file',
     namespace   => 'MyApp::Database',
+    schema_name => 'MySchema',
   );
-
+  
 =cut
 
 sub new {
@@ -51,6 +52,7 @@ sub new {
     $self->output_path( $args{output_path} );
     $self->input_file( $args{input_file} );
     $self->namespace( $args{namespace} );
+    $self->schema_name( $args{schema_name} );
     
     $self->prefix( 
         'belongs_to'   => '',
@@ -95,26 +97,26 @@ sub input_file{
     return $self->{_input_file};
 }
 
-=head2 create_scheme
+=head2 create_schema
 
-creates all the files that are needed to work with DBIx::Class scheme:
+creates all the files that are needed to work with DBIx::Class schema:
 
 The main module that loads all classes and one class per table. If you haven't
 specified an input file, the module will croak.
 
 You can specify the input file either with input_file or as an parameter for
-create_scheme
+create_schema
 
   $foo->input_file( 'dbdesigner.xml' );
-  $foo->create_scheme;
+  $foo->create_schema;
   
   # or
   
-  $foo->create_scheme( 'dbdesigner.xml' );
+  $foo->create_schema( 'dbdesigner.xml' );
 
 =cut
 
-sub create_scheme{
+sub create_schema{
     my ($self, $inputfile) = @_;
     
     $inputfile ||= $self->input_file;
@@ -124,9 +126,10 @@ sub create_scheme{
     my $output_path = $self->output_path || '.';
     my $namespace   = $self->namespace;
     
-    my $fabforce    = FabForce::DBDesigner4->new;
+    my $fabforce    = $self->dbdesigner;
        $fabforce->parsefile( xml => $inputfile );
     my @tables      = $fabforce->getTables;
+    
     
     my @files;
     my %relations;
@@ -150,6 +153,35 @@ sub create_scheme{
     push @files, @scheme;
     
     $self->_write_files( @files );
+}
+
+=head2 create_scheme
+
+C<create_scheme> is an alias for C<create_schema> for compatibility reasons
+
+=cut
+
+sub create_scheme {
+    &create_schema;
+}
+
+=head2 schema_name 
+
+sets a new name for the schema. By default on of these names is used:
+
+  DBIC_Scheme Database DBIC MyScheme MyDatabase DBIxClass_Scheme
+
+  $dbic->schema_name( 'MyNewSchema' );
+
+=cut
+
+sub schema_name {
+    my ($self,$name) = @_;
+    
+    if( @_ == 2 ){
+        $name =~ s![^A-Za-z0-9_]!!g if defined $name;
+        $self->_schema( $name );
+    }
 }
 
 =head2 namespace
@@ -205,6 +237,22 @@ sub prefix{
             $self->{prefixes}->{$key} = $val;
         }
     }
+}
+
+=head2 dbdesigner
+
+returns the C<FabForce::DBDesigner4> object.
+
+=cut
+
+sub dbdesigner {
+    my ($self) = @_;
+    
+    unless( $self->{_dbdesigner} ){
+        $self->{_dbdesigner} = FabForce::DBDesigner4->new;
+    }
+    
+    $self->{_dbdesigner};
 }
 
 sub _write_files{
@@ -267,7 +315,7 @@ sub _get_classes{
     return @{ $self->{_classes} };
 }
 
-sub _scheme{
+sub _schema{
     my ($self,$name) = @_;
     
     $self->{_scheme} = $name if defined $name;
@@ -277,7 +325,7 @@ sub _scheme{
 sub _has_many_template{
     my ($self, $to, $arrayref) = @_;
     
-    my $package = $self->namespace . '::' . $self->_scheme . '::' . $to;
+    my $package = $self->namespace . '::' . $self->_schema . '::' . $to;
        $package =~ s/^:://;
     my $name    = (split /::/, $package)[-1];
     
@@ -298,12 +346,12 @@ __PACKAGE__->has_many( $temp => '$package',
 sub _belongs_to_template{
     my ($self, $from, $arrayref) = @_;
     
-    my $package = $self->namespace . '::' . $self->_scheme . '::' . $from;
+    my $package = $self->namespace . '::' . $self->_schema . '::' . $from;
        $package =~ s/^:://;
     
     my $string = '';
     for my $arref ( @$arrayref ){
-        my ($foreign_field,$field) = @$arref;
+        my ($field,$foreign_field) = @$arref;
         my $temp_field = $self->prefix( 'belongs_to' ) . $field;
     
         $string .= qq~
@@ -319,7 +367,7 @@ sub _class_template{
     my ($self,$table,$relations) = @_;
     
     my $name    = $table->name;
-    my $package = $self->namespace . '::' . $self->_scheme . '::' . $name;
+    my $package = $self->namespace . '::' . $self->_schema . '::' . $name;
        $package =~ s/^:://;
     
     my ($has_many, $belongs_to) = ('','');
@@ -364,21 +412,22 @@ sub _main_template{
     my @class_names  = $self->_get_classes;
     my $classes      = join "\n", map{ "    " . $_ }@class_names;
     
-    my $scheme_name;
-    my @scheme_names = qw(DBIC_Scheme Database DBIC MyScheme MyDatabase DBIxClass_Scheme);
+    my $schema_name  = $self->_schema;
+    my @schema_names = qw(DBIC_Schema Database DBIC MySchema MyDatabase DBIxClass_Schema);
     
-    for my $scheme ( @scheme_names ){
-        unless( grep{ $_ eq $scheme }@class_names ){
-            $scheme_name = $scheme;
+    for my $schema ( @schema_names ){
+        last if $schema_name;
+        unless( grep{ $_ eq $schema }@class_names ){
+            $schema_name = $schema;
             last;
         }
     }
 
-    croak "couldn't determine a package name for the scheme" unless $scheme_name;
+    croak "couldn't determine a package name for the schema" unless $schema_name;
     
-    $self->_scheme( $scheme_name );
+    $self->_schema( $schema_name );
     
-    my $namespace  = $self->namespace . '::' . $scheme_name;
+    my $namespace  = $self->namespace . '::' . $schema_name;
        $namespace  =~ s/^:://;
        
     my $template = qq~package $namespace;

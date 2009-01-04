@@ -28,10 +28,10 @@ $foo->create_scheme;
 
 my $subpath = $output_path . '/' . $path;
 ok( -e $subpath , 'Path created' );
-ok( -e $subpath . '/DBIC_Scheme.pm' );
-ok( -e $subpath . '/DBIC_Scheme/Gefa_User.pm' );
-ok( -e $subpath . '/DBIC_Scheme/UserRole.pm' );
-ok( -e $subpath . '/DBIC_Scheme/Role.pm' );
+ok( -e $subpath . '/DBIC_Schema.pm' );
+ok( -e $subpath . '/DBIC_Schema/Gefa_User.pm' );
+ok( -e $subpath . '/DBIC_Schema/UserRole.pm' );
+ok( -e $subpath . '/DBIC_Schema/Role.pm' );
 
 eval{
     rmtree( $output_path );
