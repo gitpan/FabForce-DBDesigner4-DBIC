@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.07
+Version 0.0802
 
 =cut
 
-our $VERSION = '0.07';
+our $VERSION = '0.0802';
 
 =head1 SYNOPSIS
 
@@ -325,7 +325,7 @@ sub _schema{
 sub _has_many_template{
     my ($self, $to, $arrayref) = @_;
     
-    my $package = $self->namespace . '::' . $self->_schema . '::' . $to;
+    my $package = $self->namespace . '::' . $self->_schema . '::Result::' . $to;
        $package =~ s/^:://;
     my $name    = (split /::/, $package)[-1];
     
@@ -346,13 +346,14 @@ __PACKAGE__->has_many( $temp => '$package',
 sub _belongs_to_template{
     my ($self, $from, $arrayref) = @_;
     
-    my $package = $self->namespace . '::' . $self->_schema . '::' . $from;
+    my $package = $self->namespace . '::' . $self->_schema . '::Result::' . $from;
        $package =~ s/^:://;
+    my $name    = (split /::/, $package)[-1];
     
     my $string = '';
     for my $arref ( @$arrayref ){
         my ($field,$foreign_field) = @$arref;
-        my $temp_field = $self->prefix( 'belongs_to' ) . $field;
+        my $temp_field = $self->prefix( 'belongs_to' ) . $name;
     
         $string .= qq~
 __PACKAGE__->belongs_to($temp_field => '$package',
@@ -367,7 +368,7 @@ sub _class_template{
     my ($self,$table,$relations) = @_;
     
     my $name    = $table->name;
-    my $package = $self->namespace . '::' . $self->_schema . '::' . $name;
+    my $package = $self->namespace . '::' . $self->_schema . '::Result::' . $name;
        $package =~ s/^:://;
     
     my ($has_many, $belongs_to) = ('','');
@@ -434,9 +435,7 @@ sub _main_template{
 
 use base qw/DBIx::Class::Schema/;
 
-__PACKAGE__->load_classes(qw/
-$classes
-/);
+__PACKAGE__->load_namespaces;
 
 1;~;
 

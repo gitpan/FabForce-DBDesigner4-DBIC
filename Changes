@@ -1,5 +1,8 @@
 Revision history for FabForce::DBDesigner4::DBIC
 
+0.08    Sun Aug 30 2009
+        + files are now in Result::* namespace
+
 0.07    Thu Jan 02 2009
         + added .cvsignore to MANIFEST
         - fixed a small documentation bug
