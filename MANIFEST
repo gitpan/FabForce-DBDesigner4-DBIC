@@ -3,7 +3,6 @@ MANIFEST
 META.yml
 Makefile.PL
 README
-.cvsignore
 
 lib/FabForce/DBDesigner4/DBIC.pm
 
@@ -25,3 +24,4 @@ t/pod-coverage.t
 t/pod.t
 t/test.xml
 t/sample.png
+META.json                                Module JSON meta-data (added by MakeMaker)

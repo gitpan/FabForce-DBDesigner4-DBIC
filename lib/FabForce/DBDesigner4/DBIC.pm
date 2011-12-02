@@ -12,11 +12,11 @@ FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
 
 =head1 VERSION
 
-Version 0.0802
+Version 0.0803
 
 =cut
 
-our $VERSION = '0.0802';
+our $VERSION = '0.0803';
 
 =head1 SYNOPSIS
 
