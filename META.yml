@@ -18,4 +18,4 @@ requires:
   File::Basename: 0
   File::Spec: 0
   Test::More: 0
-version: 0.09
+version: 0.10

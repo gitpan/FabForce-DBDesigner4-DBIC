@@ -16,6 +16,7 @@ t/04_prefixes.t
 t/05_change_schema_name.t
 t/06_get_object.t
 t/07_version.t
+t/08_columns_detailed.t
 t/98_perl_critic.t
 t/boilerplate.t
 t/pod-coverage.t
