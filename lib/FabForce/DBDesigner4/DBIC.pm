@@ -6,42 +6,10 @@ use Carp;
 use File::Spec;
 use FabForce::DBDesigner4;
 
-=head1 NAME
+# ABSTRACT: create DBIC scheme for DBDesigner4 xml file
 
-FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
+our $VERSION = '0.09';
 
-=head1 VERSION
-
-Version 0.0803
-
-=cut
-
-our $VERSION = '0.0803';
-
-=head1 SYNOPSIS
-
-    use FabForce::DBDesigner4::DBIC;
-
-    my $foo = FabForce::DBDesigner4::DBIC->new();
-    $foo->output_path( $some_path );
-    $foo->namespace( 'MyApp::DB' );
-    $foo->create_schema( $xml_document );
-
-=head1 METHODS
-
-=head2 new
-
-creates a new object of FabForce::DBDesigner4::DBIC. You can pass some parameters
-to new (all parameters are optional)
-
-  my $foo = FabForce::DBDesigner4::DBIC->new(
-    output_path => '/path/to/dir',
-    input_file  => '/path/to/dbdesigner.file',
-    namespace   => 'MyApp::Database',
-    schema_name => 'MySchema',
-  );
-  
-=cut
 
 sub new {
     my ($class,%args) = @_;
@@ -53,6 +21,7 @@ sub new {
     $self->input_file( $args{input_file} );
     $self->namespace( $args{namespace} );
     $self->schema_name( $args{schema_name} );
+    $self->version_add( $args{version_add} );
     
     $self->prefix( 
         'belongs_to'   => '',
@@ -65,14 +34,6 @@ sub new {
     return $self;
 }
 
-=head2 output_path
-
-sets / gets the output path for the scheme
-
-  $foo->output_path( '/any/directory' );
-  print $foo->output_path;
-
-=cut
 
 sub output_path {
     my ($self,$path) = @_;
@@ -81,14 +42,6 @@ sub output_path {
     return $self->{output_path};
 }
 
-=head2 input_file
-
-sets / gets the name of the DBDesigner file (XML format)
-
-  $foo->input_file( 'dbdesigner.xml' );
-  print $foo->input_file;
-
-=cut
 
 sub input_file{
     my ($self,$file) = @_;
@@ -97,24 +50,14 @@ sub input_file{
     return $self->{_input_file};
 }
 
-=head2 create_schema
 
-creates all the files that are needed to work with DBIx::Class schema:
+sub version_add{
+    my ($self,$inc) = @_;
+    
+    $self->{_version_add} = $inc if defined $inc;
+    return $self->{_version_add};
+}
 
-The main module that loads all classes and one class per table. If you haven't
-specified an input file, the module will croak.
-
-You can specify the input file either with input_file or as an parameter for
-create_schema
-
-  $foo->input_file( 'dbdesigner.xml' );
-  $foo->create_schema;
-  
-  # or
-  
-  $foo->create_schema( 'dbdesigner.xml' );
-
-=cut
 
 sub create_schema{
     my ($self, $inputfile) = @_;
@@ -155,25 +98,11 @@ sub create_schema{
     $self->_write_files( @files );
 }
 
-=head2 create_scheme
-
-C<create_scheme> is an alias for C<create_schema> for compatibility reasons
-
-=cut
 
 sub create_scheme {
     &create_schema;
 }
 
-=head2 schema_name 
-
-sets a new name for the schema. By default on of these names is used:
-
-  DBIC_Scheme Database DBIC MyScheme MyDatabase DBIxClass_Scheme
-
-  $dbic->schema_name( 'MyNewSchema' );
-
-=cut
 
 sub schema_name {
     my ($self,$name) = @_;
@@ -184,15 +113,6 @@ sub schema_name {
     }
 }
 
-=head2 namespace
-
-sets / gets the name of the namespace. If you set the namespace to 'Test' and you
-have a table named 'MyTable', the main module is named 'Test::DBIC_Scheme' and
-the class for 'MyTable' is named 'Test::DBIC_Scheme::MyTable'
-
-  $foo->namespace( 'MyApp::DB' );
-
-=cut
 
 sub namespace{
     my ($self,$namespace) = @_;
@@ -211,19 +131,6 @@ sub namespace{
     return $self->{namespace};
 }
 
-=head2 prefix
-
-In relationships the accessor for the objects of the "other" table shouldn't have the name of the column. 
-Otherwise it is very clumsy to get the orginial value of this table.
-
-  $foo->prefix( 'belongs_to' => 'fk_' );
-  $foo->prefix( 'has_many' => 'has_' );
-
-creates (col1 is the column name of the foreign key)
-
-  __PACKAGE__->belongs_to( 'fk_col1' => 'OtherTable', {'foreign.col1' => 'self.col1' } );
-
-=cut
 
 sub prefix{
     if( @_ == 2 ){
@@ -239,11 +146,6 @@ sub prefix{
     }
 }
 
-=head2 dbdesigner
-
-returns the C<FabForce::DBDesigner4> object.
-
-=cut
 
 sub dbdesigner {
     my ($self) = @_;
@@ -313,6 +215,13 @@ sub _get_classes{
     my ($self) = @_;
     
     return @{ $self->{_classes} };
+}
+
+sub _version{
+    my ($self,$version) = @_;
+    
+    $self->{_version} = $version if defined $version;
+    return $self->{_version};
 }
 
 sub _schema{
@@ -385,12 +294,15 @@ sub _class_template{
     my $column_string = join "\n", map{ "    " . $_ }@columns;
     
     my $primary_key   = join " ", $table->key;
+    my $version       = $self->_version;
     
     my $template = qq~package $package;
     
 use strict;
 use warnings;
 use base qw(DBIx::Class);
+
+our \$VERSION = $version;
 
 __PACKAGE__->load_components( qw/PK::Auto Core/ );
 __PACKAGE__->table( '$name' );
@@ -430,10 +342,26 @@ sub _main_template{
     
     my $namespace  = $self->namespace . '::' . $schema_name;
        $namespace  =~ s/^:://;
+
+    my $version;
+    eval {
+        eval "require $namespace";
+        $version = $namespace->VERSION()
+    };
+
+    if ( $version ) {
+        $version += ( $self->version_add || 0.01 );
+    }
+
+    $version ||= '0.01';
+
+    $self->_version( $version );
        
     my $template = qq~package $namespace;
 
 use base qw/DBIx::Class::Schema/;
+
+our \$VERSION = $version;
 
 __PACKAGE__->load_namespaces;
 
@@ -442,9 +370,118 @@ __PACKAGE__->load_namespaces;
     return $namespace, $template;
 }
 
-=head1 AUTHOR
 
-Renee Baecker, C<< <module at renee-baecker.de> >>
+1; # End of FabForce::DBDesigner4::DBIC
+
+__END__
+=pod
+
+=head1 NAME
+
+FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
+
+=head1 VERSION
+
+version 0.09
+
+=head1 SYNOPSIS
+
+    use FabForce::DBDesigner4::DBIC;
+
+    my $foo = FabForce::DBDesigner4::DBIC->new();
+    $foo->output_path( $some_path );
+    $foo->namespace( 'MyApp::DB' );
+    $foo->version_add( 0.01 );
+    $foo->create_schema( $xml_document );
+
+=head1 METHODS
+
+=head2 new
+
+creates a new object of FabForce::DBDesigner4::DBIC. You can pass some parameters
+to new (all parameters are optional)
+
+  my $foo = FabForce::DBDesigner4::DBIC->new(
+    output_path => '/path/to/dir',
+    input_file  => '/path/to/dbdesigner.file',
+    namespace   => 'MyApp::Database',
+    schema_name => 'MySchema',
+  );
+
+=head2 output_path
+
+sets / gets the output path for the scheme
+
+  $foo->output_path( '/any/directory' );
+  print $foo->output_path;
+
+=head2 input_file
+
+sets / gets the name of the DBDesigner file (XML format)
+
+  $foo->input_file( 'dbdesigner.xml' );
+  print $foo->input_file;
+
+=head2 version_add
+
+The files should be versioned (e.g. to deploy the DB via C<DBIx::Class::DeploymentHandler>). On the first run 
+the version is set to "0.01". When the schema file already exists, the version is increased by the value
+of C<version_add> (default: 0.01)
+
+  $foo->version_add( 0.001 );
+
+=head2 create_schema
+
+creates all the files that are needed to work with DBIx::Class schema:
+
+The main module that loads all classes and one class per table. If you haven't
+specified an input file, the module will croak.
+
+You can specify the input file either with input_file or as an parameter for
+create_schema
+
+  $foo->input_file( 'dbdesigner.xml' );
+  $foo->create_schema;
+  
+  # or
+  
+  $foo->create_schema( 'dbdesigner.xml' );
+
+=head2 create_scheme
+
+C<create_scheme> is an alias for C<create_schema> for compatibility reasons
+
+=head2 schema_name 
+
+sets a new name for the schema. By default on of these names is used:
+
+  DBIC_Scheme Database DBIC MyScheme MyDatabase DBIxClass_Scheme
+
+  $dbic->schema_name( 'MyNewSchema' );
+
+=head2 namespace
+
+sets / gets the name of the namespace. If you set the namespace to 'Test' and you
+have a table named 'MyTable', the main module is named 'Test::DBIC_Scheme' and
+the class for 'MyTable' is named 'Test::DBIC_Scheme::MyTable'
+
+  $foo->namespace( 'MyApp::DB' );
+
+=head2 prefix
+
+In relationships the accessor for the objects of the "other" table shouldn't have the name of the column. 
+Otherwise it is very clumsy to get the orginial value of this table.
+
+  $foo->prefix( 'belongs_to' => 'fk_' );
+  $foo->prefix( 'has_many' => 'has_' );
+
+creates (col1 is the column name of the foreign key)
+
+  __PACKAGE__->belongs_to( 'fk_col1' => 'OtherTable', {'foreign.col1' => 'self.col1' } );
+
+=head2 dbdesigner
+
+returns the C<FabForce::DBDesigner4> object.
 
 =head1 BUGS
 
@@ -484,13 +521,17 @@ L<http://search.cpan.org/dist/FabForce::DBDesigner4::DBIC>
 
 =head1 ACKNOWLEDGEMENTS
 
-=head1 COPYRIGHT & LICENSE
+=head1 AUTHOR
 
-Copyright 2007 Renee Baecker, all rights reserved.
+Renee Baecker <module@renee-baecker.de>
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+=head1 COPYRIGHT AND LICENSE
+
+This software is Copyright (c) 2013 by Renee Baecker.
+
+This is free software, licensed under:
+
+  The Artistic License 2.0 (GPL Compatible)
 
 =cut
 
-1; # End of FabForce::DBDesigner4::DBIC
