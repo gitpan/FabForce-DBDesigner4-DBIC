@@ -23,7 +23,7 @@ FabForce::DBDesigner4::DBIC::FakeDBIC - provide some DBIx::Class method stubs wh
 
 =head1 VERSION
 
-version 0.13
+version 0.12
 
 =head1 DESCRIPTION
 
