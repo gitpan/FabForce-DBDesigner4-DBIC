@@ -21,12 +21,12 @@ my %WriteMakefileArgs = (
   "NAME" => "FabForce::DBDesigner4::DBIC",
   "PREREQ_PM" => {
     "Carp" => 0,
-    "FabForce::DBDesigner4" => "0.32",
+    "FabForce::DBDesigner4" => 0,
     "File::Basename" => 0,
     "File::Spec" => 0,
     "Test::More" => 0
   },
-  "VERSION" => "0.12",
+  "VERSION" => "0.10",
   "test" => {
     "TESTS" => "t/*.t"
   }

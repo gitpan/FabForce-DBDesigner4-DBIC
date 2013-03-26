@@ -10,9 +10,7 @@ BEGIN {
 	use_ok( 'FabForce::DBDesigner4::DBIC' );
 }
 
-#use FabForce::DBDesigner4::DBIC::FakeDBIC;
-
-my $foo = FabForce::DBDesigner4::DBIC->new();
+my $foo = FabForce::DBDesigner4::DBIC->new;
 isa_ok( $foo, 'FabForce::DBDesigner4::DBIC', 'object is type F::D::D' );
 
 my $bin         = $FindBin::Bin;

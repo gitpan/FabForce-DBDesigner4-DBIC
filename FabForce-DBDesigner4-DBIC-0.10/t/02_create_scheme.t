@@ -3,16 +3,14 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More tests => 7;
 use FindBin ();
 
 BEGIN {
 	use_ok( 'FabForce::DBDesigner4::DBIC' );
 }
 
-#use FabForce::DBDesigner4::DBIC::FakeDBIC;
-
-my $foo = FabForce::DBDesigner4::DBIC->new();
+my $foo = FabForce::DBDesigner4::DBIC->new;
 isa_ok( $foo, 'FabForce::DBDesigner4::DBIC', 'object is type F::D::D' );
 
 my $bin         = $FindBin::Bin;
@@ -37,33 +35,6 @@ ok( -e $subpath . '/DBIC_Schema.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/Gefa_User.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/UserRole.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/Role.pm' );
-
-my $lib_path = _untaint_path($output_path);
-
-my $version;
-eval {
-    eval "use lib '$lib_path'";
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 0.01, 'check version';
-
-$foo->create_schema;
-eval{
-    delete $INC{"MyApp/DB/DBIC_Schema.pm"};
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 0.02, 'check version 0.02';
-
-$foo->version_add( 1 );
-$foo->create_schema;
-eval{
-    delete $INC{"MyApp/DB/DBIC_Schema.pm"};
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 1.02, 'check version 1.02';
 
 eval{
     rmtree( $output_path );

@@ -14,8 +14,8 @@ meta-spec:
 name: FabForce-DBDesigner4-DBIC
 requires:
   Carp: 0
-  FabForce::DBDesigner4: 0.32
+  FabForce::DBDesigner4: 0
   File::Basename: 0
   File::Spec: 0
   Test::More: 0
-version: 0.12
+version: 0.10
